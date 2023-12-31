@@ -5,6 +5,7 @@ import asyncio
 from pathlib import Path
 import sqlite3
 from collections import defaultdict
+import datetime
 
 
 bat_paths = {
@@ -20,25 +21,6 @@ bat_status = {
 
 data_capture_interval = 5
 
-'''
-def split_by_app(data):
-    idxs = []
-    start_idx = 0
-    app = data[0][-1]
-    for idx, d in enumerate(data):
-        if d[4] != app:
-            idxs.append((start_idx, idx - 1, app))
-            start_idx = idx
-            app = d[-1]
-    if start_idx != idx:
-        idxs.append((start_idx, idx, app))
-    return idxs
-'''
-
-
-"""
-select count(*) from battery where time > (select time from battery where status=1 order by time desc LIMIT 1);
-"""
 
 class Plugin:
     async def _main(self):
@@ -96,54 +78,37 @@ class Plugin:
                             from battery where status == -1 and time > %i 
                             group by app,status order by power desc"""%start_time
                         ).fetchall()
-                per_app_data = [{"name": d[0], "average_power": d[1]} for d in data]
+                per_app_data = [{"name": d[0], "average_power": '%sW'%d[1]} for d in data]
                 return per_app_data  
+
+            def get_esimated_screen_time():
+                decky_plugin.logger.info("get_esimated_screen_time") 
+                data = self.cursor.execute(
+                        """select count(*) from battery 
+                        where time > (select time from battery 
+                        where status=1 order by time desc LIMIT 1)"""
+                        ).fetchall()
+                estimated_time = str(datetime.timedelta(seconds = int(data[0][0])*data_capture_interval))
+                return [{"name":'After last charging', "average_power": estimated_time}]
+                
 
             end_time = time.time()
             start_time = end_time - 24 * lookback * 3600 
 
-            '''
-            data = self.cursor.execute(
-                "select * from battery where time > " + str(int(start_time))
-            ).fetchall()
-            diff = end_time - start_time
-            x_axis = [(d[0] - start_time) / diff for d in data]
-            y_axis = [d[1] / 100 for d in data]
-            '''
-            x_axis, y_axis = get_data_for_graph(end_time, start_time)
-
-            """
-            per_app_powers = defaultdict(list)
-            for start, end, app in split_by_app(data):
-                if app == "Unknown":
-                    app = "Steam"
-                per_app_powers[app].extend(
-                    [d[3] / 1.0 for d in data[start:end] if d[2] == -1]
-                )
-            per_app_data = [
-                {"name": app, "average_power": int(sum(power_data) / len(power_data))}
-                for app, power_data in per_app_powers.items()
-                if power_data
-            ]"""
+            x_axis, y_axis = get_data_for_graph(end_time, start_time)   
             per_app_data = get_avg_by_app(end_time, start_time)
+            estimated_time = get_esimated_screen_time()
             return {
                 "x": x_axis,
                 "cap": y_axis,
-                "power_data": per_app_data 
-                #sorted(per_app_data, key=lambda x: -x["average_power"]),
+                "power_data": estimated_time+per_app_data 
+                
             }
         except Exception:
             decky_plugin.logger.exception("could not get recent data")
 
     async def recorder(self):
 
-        '''
-        #volt_file = open("/sys/class/power_supply/BAT1/voltage_now")
-        #curr_file = open("/sys/class/power_supply/BAT1/current_now")
-        power_file = open("/sys/class/power_supply/BAT0/power_now")
-        cap_file = open("/sys/class/power_supply/BAT0/capacity")
-        status = open("/sys/class/power_supply/BAT0/status")
-        '''
         logger = decky_plugin.logger
         files = {}
         for item in bat_paths.items():
@@ -168,26 +133,6 @@ class Plugin:
                                 status = 0
 
 
-                '''  
-                #volt_file.seek(0)
-                #curr_file.seek(0)
-                power_file.seek(0)
-                cap_file.seek(0)
-                status.seek(0)
-                #volt = int(volt_file.read().strip())
-                #curr = int(curr_file.read().strip())
-                power = int(power_file.read().strip())*10**-6
-                cap = int(cap_file.read().strip())
-                stat = status.read().strip()
-                if stat == "Discharging":
-                    stat = -1
-                elif stat == "Charging":
-                    stat = 1
-                else:
-                    stat = 0
-
-                #power = int(volt * curr * 10.0**-11)
-                '''
                 curr_time = int(time.time())
                 running_list.append((curr_time, cap, stat, power, self.app))
                 if len(running_list) > 10:
