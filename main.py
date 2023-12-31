@@ -121,7 +121,8 @@ class Plugin:
             try:
                 for item in files.items():
                     f = item[1]
-                    val = f.seek(0).read().strip()
+                    val = f.read().strip()
+                    f.seek(0)
                     match item[0]:
                         case 'power':
                             power = int(val)*10**-6
