@@ -6,7 +6,7 @@ This is a sligtly modified version of [steam-deck-battery-tracker](https://githu
 Note that all these commands are run inside the Ally.
 
 Please use Decky's built-in store to install official releases of steam-deck-battery-tracker.
-Run this command once you've installed PowerTools to patch it:
+Run this command once you've installed steam-deck-battery-tracker to patch it:
 
     curl -L https://github.com/Alexey-Batishcev/rog-ally-battery-tracker/releases/latest/download/install.sh | sh
 
