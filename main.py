@@ -110,11 +110,12 @@ class Plugin:
     async def recorder(self):
 
         logger = decky_plugin.logger
+        logger.info("recorder started")
         files = {}
         for item in bat_paths.items():
             files[item[0]] = open(item[1])
 
-        logger.info("recorder started")
+        logger.info("files opened")
         running_list = []
         while True:
             try:
@@ -127,19 +128,21 @@ class Plugin:
                         case 'capacity':
                             cap = int(val)
                         case 'status':
-                            if val in bat_status:
+                            if val in bat_status.keys():
                                 status = bat_status[val]
                             else:
                                 status = 0
 
 
                 curr_time = int(time.time())
-                running_list.append((curr_time, cap, stat, power, self.app))
+                running_list.append((curr_time, cap, status, power, self.app))
                 if len(running_list) > 10:
+                    logger.info("data ready to insert")
                     self.cursor.executemany(
                         "insert into battery values (?, ?, ?, ?, ?)", running_list
                     )
                     self.con.commit()
+                    logger.info("data inserted")
                     running_list = []
             except Exception:
                 logger.exception("recorder")
