@@ -86,7 +86,7 @@ class Plugin:
                 data = self.cursor.execute(
                         """select count(*) from battery 
                         where time > (select time from battery 
-                        where status=1 order by time desc LIMIT 1)"""
+                        where status>-1 order by time desc LIMIT 1)"""
                         ).fetchall()
                 estimated_time = str(datetime.timedelta(seconds = int(data[0][0])*data_capture_interval))
                 return [{"name":'After last charging', "average_power": estimated_time}]
