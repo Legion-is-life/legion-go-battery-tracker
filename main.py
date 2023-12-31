@@ -72,7 +72,7 @@ class Plugin:
                 if app == "Unknown":
                     app = "Steam"
                 per_app_powers[app].extend(
-                    [d[3] / 10.0 for d in data[start:end] if d[2] == -1]
+                    [d[3] / 1.0 for d in data[start:end] if d[2] == -1]
                 )
             per_app_data = [
                 {"name": app, "average_power": int(sum(power_data) / len(power_data))}
@@ -88,22 +88,25 @@ class Plugin:
             decky_plugin.logger.exception("could not get recent data")
 
     async def recorder(self):
-        volt_file = open("/sys/class/power_supply/BAT1/voltage_now")
-        curr_file = open("/sys/class/power_supply/BAT1/current_now")
-        cap_file = open("/sys/class/power_supply/BAT1/capacity")
-        status = open("/sys/class/power_supply/BAT1/status")
+        #volt_file = open("/sys/class/power_supply/BAT1/voltage_now")
+        #curr_file = open("/sys/class/power_supply/BAT1/current_now")
+        power_file = open("/sys/class/power_supply/BAT0/power_now")
+        cap_file = open("/sys/class/power_supply/BAT0/capacity")
+        status = open("/sys/class/power_supply/BAT0/status")
         logger = decky_plugin.logger
 
         logger.info("recorder started")
         running_list = []
         while True:
             try:
-                volt_file.seek(0)
-                curr_file.seek(0)
+                #volt_file.seek(0)
+                #curr_file.seek(0)
+                power_file.seek(0)
                 cap_file.seek(0)
                 status.seek(0)
-                volt = int(volt_file.read().strip())
-                curr = int(curr_file.read().strip())
+                #volt = int(volt_file.read().strip())
+                #curr = int(curr_file.read().strip())
+                power = int(power_file.read().strip())*10**-6
                 cap = int(cap_file.read().strip())
                 stat = status.read().strip()
                 if stat == "Discharging":
@@ -113,7 +116,7 @@ class Plugin:
                 else:
                     stat = 0
 
-                power = int(volt * curr * 10.0**-11)
+                #power = int(volt * curr * 10.0**-11)
                 curr_time = int(time.time())
                 running_list.append((curr_time, cap, stat, power, self.app))
                 if len(running_list) > 10:
