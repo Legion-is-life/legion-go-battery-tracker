@@ -11,11 +11,11 @@ rm -rf *
 
 systemctl stop plugin_loader || true
 curl -L https://github.com/Alexey-Batishcev/rog-ally-battery-tracker/releases/latest/download/main.py -o main.py
-curl -L https://github.com/Alexey-Batishcev/rog-ally-battery-tracker/releases/latest/download/index.tsx -o index.tsx
+curl -L https://github.com/Alexey-Batishcev/rog-ally-battery-tracker/releases/latest/download/index.js -o index.js
 
 echo "Copying files..."
-cp main.py $WORKING_FOLDER/main.py
-#cp backend $WORKING_FOLDER/bin/backend
+cp main.py $WORKING_FOLDER/
+cp index.js $WORKING_FOLDER/dist/
 
 systemctl start plugin_loader || true
 echo "Successfully installed patched steam-deck-battery-tracker for ROG Ally!"
