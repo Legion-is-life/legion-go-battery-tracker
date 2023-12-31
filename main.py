@@ -8,20 +8,6 @@ from collections import defaultdict
 import datetime
 
 
-bat_paths = {
-            'power':'/sys/class/power_supply/BAT0/power_now',
-            'capacity':'sys/class/power_supply/BAT0/capacity',
-            'status':'/sys/class/power_supply/BAT0/status'
-            }
-
-bat_status = {
-        'Charging' : 1,
-        'Discharging' : -1,
-        }
-
-data_capture_interval = 5
-
-
 class Plugin:
     async def _main(self):
         try:
@@ -108,6 +94,20 @@ class Plugin:
             decky_plugin.logger.exception("could not get recent data")
 
     async def recorder(self):
+
+        bat_paths = {
+                    'power':'/sys/class/power_supply/BAT0/power_now',
+                    'capacity':'/sys/class/power_supply/BAT0/capacity',
+                    'status':'/sys/class/power_supply/BAT0/status'
+                    }
+
+        bat_status = {
+                'Charging' : 1,
+                'Discharging' : -1,
+                }
+
+        data_capture_interval = 5
+
 
         logger = decky_plugin.logger
         logger.info("recorder started")
