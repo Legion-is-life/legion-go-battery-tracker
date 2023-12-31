@@ -8,6 +8,9 @@ from collections import defaultdict
 import datetime
 
 
+data_capture_interval = 5
+
+
 class Plugin:
     async def _main(self):
         try:
@@ -105,8 +108,6 @@ class Plugin:
                 'Charging' : 1,
                 'Discharging' : -1,
                 }
-
-        data_capture_interval = 5
 
 
         logger = decky_plugin.logger
