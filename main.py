@@ -65,10 +65,11 @@ class Plugin:
                         is_start = True
                         session['start'] = item[0]
                         session['end'] = end_time
+                        sessions.append(session)
                         continue
                     if (item[2] != -1) & (is_start == True):
                         session['end'] = item[0]
-                        sessions.append(session)
+                        sessions[-1] = session
                         is_start = False
                         session = {}
                 sessions_info = []

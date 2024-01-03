@@ -159,26 +159,28 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({serverAPI}) => {
         />
       </PanelSectionRow>
       { powerPerAppEnabled && 
-        <PanelSectionRow>
-          {leData!=null && leData.power_data.map((item: any) => (
+        leData!=null && leData.power_data.map((item: any) => (
           //<div>{item.name}: {item.average_power}</div>
+        <PanelSectionRow>
           <Field 
-            label={item.name}>
+            label={item.name}
+            onClick={()=> { void(0) }}>
             {item.average_power}
           </Field>
-        ))}
         </PanelSectionRow>
+        ))        
       }
       { !powerPerAppEnabled && 
-        <PanelSectionRow>
-        {leData!=null && leData.session_data.map((item: any) => (
+        leData!=null && leData.session_data.map((item: any) => (
           //<div>{item.name}: {item.average_power}</div>
+        <PanelSectionRow>
           <Field 
-            label={item.name}>
+            label={item.name}
+            onClick={()=> { void(0) }}>
             {item.average_power}
           </Field>
-        ))}
         </PanelSectionRow>
+        ))
       }
     </PanelSection>
   );
