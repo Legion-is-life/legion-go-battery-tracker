@@ -49,16 +49,52 @@ class Plugin:
     async def get_recent_data(self, lookback=2):
         try:
             decky_plugin.logger.info(f"lookback {lookback}")
+
+            def get_battery_sessions(end_time, start_time):
+                decky_plugin.logger.info("get_battery_sessions")
+                data = self.cursor.execute(
+                        """select time,prev_status,status,capacity from 
+                            ( select time,app,status,capacity,lag(status,1) over () as prev_status, 
+                            sum(status) over (order by time asc rows between 1 preceding and current row) as sum_status from battery where time > %i) 
+                            where sum_status between 0 and 1"""%start_time).fetchall()
+                sessions = []
+                session = {}
+                is_start = False
+                for item in data:
+                    if (item[2] == -1) & (is_start == False):
+                        is_start = True
+                        session['start'] = item[0]
+                        session['end'] = end_time
+                        continue
+                    if (item[2] != -1) & (is_start == True):
+                        session['end'] = item[0]
+                        sessions.append(session)
+                        is_start = False
+                        session = {}
+                sessions_info = []
+                sessions.reverse()
+                for session in sessions:
+                    session_info = get_esimated_screen_time(session)
+                    sessions_info = sessions_info+session_info
+                return sessions_info
             
             def get_data_for_graph(end_time, start_time):
                 decky_plugin.logger.info("get_data_for_graph") 
                 data = self.cursor.execute(
-                        "select * from battery where time > %i"%start_time
+                        """select time, capacity, prev_capacity, status from (select time, capacity, 
+                        lag(capacity,1) over() as prev_capacity, status from battery where time>%i) 
+                        where capacity <> prev_capacity"""%start_time
+                        #"select * from battery where time > %i"%start_time
                         ).fetchall()
-                diff = end_time - start_time
-                x_axis = [(d[0] - start_time) / diff for d in data]
+                diff = len(data)#end_time - start_time
+                x_axis = [x/(diff-1) for x in range(diff)]
+                #[(d[0] - start_time) / diff for d in data]
                 y_axis = [d[1] / 100 for d in data]
-                return x_axis, y_axis    
+                colors = { -1: 'rgba(204,51,0,0.4)',
+                            1: 'rgba(51,204,51,0.4)',
+                            2: 'rgba(255,153,0,0.4)'}
+                strokeStyle = [colors[d[3]] for d in data]
+                return x_axis, y_axis, strokeStyle    
 
             def get_avg_by_app(end_time, start_time):
                 decky_plugin.logger.info("get_avg_by_app") 
@@ -67,30 +103,39 @@ class Plugin:
                             from battery where status == -1 and time > %i 
                             group by app,status order by power desc"""%start_time
                         ).fetchall()
-                per_app_data = [{"name": d[0], "average_power": '%sW'%d[1]} for d in data]
+                max_len = 21
+                per_app_data = [{"name": d[0].ljust(max_len, '\t')[:max_len], 
+                                "average_power": '%s Wh'%d[1]} for d in data]
                 return per_app_data  
 
-            def get_esimated_screen_time():
+            def get_esimated_screen_time(session):
                 decky_plugin.logger.info("get_esimated_screen_time") 
                 data = self.cursor.execute(
-                        """select count(*) from battery 
-                        where time > (select time from battery 
-                        where status>-1 order by time desc LIMIT 1)"""
+                    """select count(*), max(capacity), min(capacity), round(AVG(power),1) from battery 
+                        where time between %i and %i"""%(session['start'], session['end'])
                         ).fetchall()
-                estimated_time = str(datetime.timedelta(seconds = int(data[0][0])*data_capture_interval))
-                return [{"name":'After last charging', "average_power": estimated_time}]
+                
+                if int(data[0][0]) > 0:
+                    start_session = str(datetime.datetime.fromtimestamp(session['start']))
+                    estimated_time = str(datetime.timedelta(seconds = int(data[0][0])*data_capture_interval))
+                    max_cap, min_cap, avg = data[0][1], data[0][2], data[0][3]
+                    return [{"name":'%s'%start_session, "average_power": '\n%i%%->%i%% | %s Wh | %s'%(max_cap, min_cap, avg, estimated_time)}]
+                else:
+                    return []
                 
 
             end_time = time.time()
             start_time = end_time - 24 * lookback * 3600 
 
-            x_axis, y_axis = get_data_for_graph(end_time, start_time)   
+            x_axis, y_axis, strokeStyle = get_data_for_graph(end_time, start_time)   
             per_app_data = get_avg_by_app(end_time, start_time)
-            estimated_time = get_esimated_screen_time()
+            per_session_data = get_battery_sessions(end_time, start_time)
             return {
                 "x": x_axis,
                 "cap": y_axis,
-                "power_data": estimated_time+per_app_data 
+                "strokeStyle" : strokeStyle,
+                "power_data": per_app_data, 
+                "session_data": per_session_data
                 
             }
         except Exception:
@@ -133,7 +178,7 @@ class Plugin:
                             if val in bat_status.keys():
                                 status = bat_status[val]
                             else:
-                                status = 0
+                                status = 2
 
 
                 curr_time = int(time.time())

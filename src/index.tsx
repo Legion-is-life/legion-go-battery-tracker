@@ -1,33 +1,45 @@
 import {
-  ButtonItem,
   definePlugin,
-  DialogButton,
-  Menu,
-  MenuItem,
   PanelSection,
   PanelSectionRow,
   Router,
   ServerAPI,
-  showContextMenu,
   staticClasses,
-  SliderField
+  SliderField,
+  ToggleField,
+  Field
 } from "decky-frontend-lib";
 import { VFC, useState } from "react";
-import { FaBatteryFull, FaShip } from "react-icons/fa";
+import { FaBatteryFull } from "react-icons/fa";
 
-import logo from "../assets/logo.png";
 import {Canvas} from "./canvas";
 
-const Content: VFC<{ serverAPI: ServerAPI, startData: any }> = ({serverAPI}) => {
-  const [lookback, setLookback] = useState<number | undefined>(1);
-  const [leData, setData] = useState<any>(null);
+interface BatteryStats {
+  x: any;
+  cap: any;
+  strokeStyle: any;
+  power_data: any;
+  session_data: any;
+}
+
+const Content: VFC<{ serverAPI: ServerAPI }> = ({serverAPI}) => {
+  const [chargingGraphEnabled, setChargingGraphEnabled] = useState<boolean>(false);
+  const [powerPerAppEnabled, setPowerPerAppEnabled] = useState<boolean>(true);
+  const [lookback, setLookback] = useState<number>(1);
+  const [leData, setData] = useState<BatteryStats>();
+  const [firstTime, setFirstTime] = useState<boolean>(true);
+  
+  if (firstTime) {
+    setFirstTime(false);
+    serverAPI.callPluginMethod("get_recent_data", {lookback: lookback}).then((val) => {setData(val.result as BatteryStats)});
+  }
 
   const drawCanvas = async (ctx: any, frameCount: number) => {
     if (frameCount % 1000 > 1) {
       return;
     }
     if (leData == null) {
-      var data = (await serverAPI.callPluginMethod("get_recent_data", {lookback: lookback})).result;
+      var data = (await serverAPI.callPluginMethod("get_recent_data", {lookback: lookback})).result as BatteryStats; 
       console.log("Got first time data", data);
       setData(data);
     } else {
@@ -69,26 +81,29 @@ const Content: VFC<{ serverAPI: ServerAPI, startData: any }> = ({serverAPI}) => 
     ctx.fillText("Time", width / 2, height - 4);
     // graph data labels
     ctx.textAlign = "start"; // default
-    ctx.fillText("-2d", 2, height - 2);
+    ctx.fillText(lookback, 2, height - 2);
     ctx.fillText("100%", 2, 9);
     ctx.textAlign = "right";
     ctx.fillText("Now", width - 2, height - 2);
 
     // ctx.moveTo(data[0].x/width, );
+
     for (var i = 0; i < data.x.length; i++) {
       ctx.beginPath();
+      ctx.strokeStyle = data.strokeStyle[i]
       // console.log(data.x[i+1] - data.x[i]);
-      if (data.x[i+1] - data.x[i] > 0.000078354119349755*10) {
+      /*if (data.x[i+1] - data.x[i] > 0.000078354119349755*10) {
         ctx.strokeStyle = "yellow";
       } else {
         if (data.cap[i+1] > data.cap[i]) {
           ctx.strokeStyle = "green";
         } else {
-          ctx.strokeStyle = "red";
+          ctx.strokeStyle = "rgba(153,0,0,0.1)";//"red";
         }
-      }
-      ctx.moveTo(data.x[i]*width, height - data.cap[i]*height);
-      ctx.lineTo(data.x[i+1]*width, height- data.cap[i+1]*height);
+      }*/
+      ctx.moveTo(data.x[i]*width, height);//height - data.cap[i]*height);
+      ctx.lineTo(data.x[i]*width, height - data.cap[i]*height);
+      //ctx.lineTo(data.x[i+1]*width, height- data.cap[i+1]*height);
       ctx.stroke();
     }
     console.debug("Rendered ", frameCount);
@@ -96,11 +111,10 @@ const Content: VFC<{ serverAPI: ServerAPI, startData: any }> = ({serverAPI}) => 
   }
 
   return (
-    <PanelSection title="Recent Battery Use">
+    <PanelSection>
       <PanelSectionRow>
         <SliderField
           label="Lookback in days"
-          description="Lookback in days"
           value={lookback || 1}
           step={1}
           max={7}
@@ -109,28 +123,63 @@ const Content: VFC<{ serverAPI: ServerAPI, startData: any }> = ({serverAPI}) => 
           showValue={true}
           onChange={(value: number) => {
             setLookback(value);
-            serverAPI.callPluginMethod("get_recent_data", {lookback: value}).then((val) => {setData(val.result)});
+            serverAPI.callPluginMethod("get_recent_data", {lookback: value}).then((val) => {setData(val.result as BatteryStats)});
           }}
         />
       </PanelSectionRow>
       <PanelSectionRow>
-      <Canvas draw={(ctx: any, frameCount: number) => drawCanvas(ctx, frameCount)} width={268} height={200} style={{
+        <ToggleField
+          label="Battery charging history"
+          checked={chargingGraphEnabled}
+          onChange={(value: boolean) => {
+            setChargingGraphEnabled(value);
+          }}
+        />
+      </PanelSectionRow>
+      { chargingGraphEnabled && 
+        <PanelSectionRow>
+          <Canvas draw={(ctx: any, frameCount: number) => drawCanvas(ctx, frameCount)} width={268} height={150} style={{
                 "width": "268px",
-                "height": "200px",
+                "height": "150",
                 "padding":"0px",
                 "border":"1px solid #1a9fff",
                 "background-color":"#1a1f2c",
                 "border-radius":"4px",
               }} onClick={(e: any) => console.log(e)}/>
-      </PanelSectionRow>
+        </PanelSectionRow>
+      }
       <PanelSectionRow>
-        {leData != null &&
-          <h4>Avg Power Consumption</h4>
-        }
-        {leData!=null && leData.power_data.map((item: any) => (
-          <div>{item.name}: {item.average_power}</div>
-        ))}
+        <ToggleField
+          label="Per App Consumption"
+          description="Disable for Session Consumption"
+          checked={powerPerAppEnabled}
+          onChange={(value: boolean) => {
+            setPowerPerAppEnabled(value);
+          }}
+        />
       </PanelSectionRow>
+      { powerPerAppEnabled && 
+        <PanelSectionRow>
+          {leData!=null && leData.power_data.map((item: any) => (
+          //<div>{item.name}: {item.average_power}</div>
+          <Field 
+            label={item.name}>
+            {item.average_power}
+          </Field>
+        ))}
+        </PanelSectionRow>
+      }
+      { !powerPerAppEnabled && 
+        <PanelSectionRow>
+        {leData!=null && leData.session_data.map((item: any) => (
+          //<div>{item.name}: {item.average_power}</div>
+          <Field 
+            label={item.name}>
+            {item.average_power}
+          </Field>
+        ))}
+        </PanelSectionRow>
+      }
     </PanelSection>
   );
 
@@ -139,11 +188,11 @@ const Content: VFC<{ serverAPI: ServerAPI, startData: any }> = ({serverAPI}) => 
 export default definePlugin((serverApi: ServerAPI) => {
   console.log("defining battery plugin");
   var app = Router.MainRunningApp?.display_name;
-  serverApi.callPluginMethod("set_app", {app: app}).then((val) => {});
+  serverApi.callPluginMethod("set_app", {app: app});
 
   setInterval(() => {
     var app_now = Router.MainRunningApp?.display_name;
-    serverApi.callPluginMethod("set_app", {app: app_now}).then((val) => {});
+    serverApi.callPluginMethod("set_app", {app: app_now});
     app = app_now;
   }, 1000*10);
 
