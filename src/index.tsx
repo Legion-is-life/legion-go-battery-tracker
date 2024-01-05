@@ -4,12 +4,13 @@ import {
   PanelSectionRow,
   Router,
   ServerAPI,
+  //ServerResponse,
   staticClasses,
   SliderField,
   ToggleField,
   Field
 } from "decky-frontend-lib";
-import { VFC, useState } from "react";
+import { VFC, useEffect, useState } from "react";
 import { FaBatteryFull } from "react-icons/fa";
 
 import {Canvas} from "./canvas";
@@ -22,29 +23,56 @@ interface BatteryStats {
   session_data: any;
 }
 
+interface PluginConfig {
+  lookback: number;
+  chargingGraphEnabled: boolean;
+  powerPerAppEnabled: boolean;
+}
+
+
 const Content: VFC<{ serverAPI: ServerAPI }> = ({serverAPI}) => {
-  const [chargingGraphEnabled, setChargingGraphEnabled] = useState<boolean>(false);
-  const [powerPerAppEnabled, setPowerPerAppEnabled] = useState<boolean>(true);
-  const [lookback, setLookback] = useState<number>(1);
+
+  const [pluginConfig, setPluginConfig] = useState<PluginConfig>();
   const [leData, setData] = useState<BatteryStats>();
-  const [firstTime, setFirstTime] = useState<boolean>(true);
+  const [chargingGraphEnabled, setChargingGraphEnabled] = useState<boolean>(false);
+  const [powerPerAppEnabled, setPowerPerAppEnabled] = useState<boolean>(false);
+  const [lookback, setLookback] = useState<number>(0);
+
   
-  if (firstTime) {
-    setFirstTime(false);
-    serverAPI.callPluginMethod("get_recent_data", {lookback: lookback}).then((val) => {setData(val.result as BatteryStats)});
+  async function getConfig() {
+    const configRes = (await serverAPI.callPluginMethod("get_plugin_config", {})).result as PluginConfig;
+    setPluginConfig(configRes);   
+    setLookback(configRes.lookback);
+    setChargingGraphEnabled(configRes.chargingGraphEnabled);
+    setPowerPerAppEnabled(configRes.powerPerAppEnabled);
+    }
+
+  async function getBatteryData() {
+     const data = (await serverAPI.callPluginMethod("get_recent_data", {lookback: lookback})).result as BatteryStats;//.then((val) => {setData(val.result as BatteryStats)});
+     setData(data);
   }
+ 
+  useEffect(() => {
+    if (pluginConfig != null) {
+      getBatteryData();
+      }
+    }, [lookback]);
+
+  useEffect(() => {
+    getConfig();
+    }, []);
 
   const drawCanvas = async (ctx: any, frameCount: number) => {
     if (frameCount % 1000 > 1) {
       return;
     }
-    if (leData == null) {
+    /*if (leData == null) {
       var data = (await serverAPI.callPluginMethod("get_recent_data", {lookback: lookback})).result as BatteryStats; 
       console.log("Got first time data", data);
       setData(data);
     } else {
       var data = leData;
-    }
+    }*/
 
     console.log("in draw canvas ", leData);
 
@@ -88,6 +116,11 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({serverAPI}) => {
 
     // ctx.moveTo(data[0].x/width, );
 
+    if (leData == null)
+      return;
+
+    var data = leData;
+
     for (var i = 0; i < data.x.length; i++) {
       ctx.beginPath();
       ctx.strokeStyle = data.strokeStyle[i]
@@ -115,7 +148,7 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({serverAPI}) => {
       <PanelSectionRow>
         <SliderField
           label="Lookback in days"
-          value={lookback || 1}
+          value={lookback}
           step={1}
           max={7}
           min={1}
@@ -123,7 +156,8 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({serverAPI}) => {
           showValue={true}
           onChange={(value: number) => {
             setLookback(value);
-            serverAPI.callPluginMethod("get_recent_data", {lookback: value}).then((val) => {setData(val.result as BatteryStats)});
+            serverAPI.callPluginMethod("update_plugin_config", {config_item_name:'lookback', config_item_value: value});
+            //serverAPI.callPluginMethod("get_recent_data", {lookback: value}).then((val) => {setData(val.result as BatteryStats)});
           }}
         />
       </PanelSectionRow>
@@ -133,6 +167,7 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({serverAPI}) => {
           checked={chargingGraphEnabled}
           onChange={(value: boolean) => {
             setChargingGraphEnabled(value);
+            serverAPI.callPluginMethod("update_plugin_config", {config_item_name: 'chargingGraphEnabled', config_item_value: value});
           }}
         />
       </PanelSectionRow>
@@ -155,6 +190,7 @@ const Content: VFC<{ serverAPI: ServerAPI }> = ({serverAPI}) => {
           checked={powerPerAppEnabled}
           onChange={(value: boolean) => {
             setPowerPerAppEnabled(value);
+            serverAPI.callPluginMethod("update_plugin_config", {config_item_name: 'powerPerAppEnabled', config_item_value: value});
           }}
         />
       </PanelSectionRow>

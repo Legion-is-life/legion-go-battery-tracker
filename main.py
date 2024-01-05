@@ -6,9 +6,16 @@ from pathlib import Path
 import sqlite3
 from collections import defaultdict
 import datetime
+import json
 
 
 data_capture_interval = 5
+config_filename = Path(decky_plugin.DECKY_PLUGIN_SETTINGS_DIR) / 'config.json'
+default_config = {
+  "lookback": 2,
+  "chargingGraphEnabled": False,
+  "powerPerAppEnabled": False
+}
 
 
 class Plugin:
@@ -44,6 +51,24 @@ class Plugin:
         decky_plugin.logger.info(f"Getting app as {app}")
         if app:
             self.app = app
+        return True
+
+    async def get_plugin_config(self):
+        decky_plugin.logger.info(f"get_plugin_config")
+        try:
+            with open(config_filename, 'r') as fp:
+                self.config  = json.load(fp)
+        except FileNotFoundError:
+            self.config = default_config
+        decky_plugin.logger.info(f"{self.config}")
+        return self.config
+
+
+    async def update_plugin_config(self, config_item_name, config_item_value):
+        decky_plugin.logger.info(f"Update config: {config_item_name}={config_item_value}")
+        self.config[config_item_name] = config_item_value
+        with open(config_filename, 'w') as fp:
+            json.dump(self.config, fp)
         return True
 
     async def get_recent_data(self, lookback=2):
