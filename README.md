@@ -8,7 +8,7 @@ Note that all these commands are run inside the Legion.
 Please use Decky's built-in store to install official releases of steam-deck-battery-tracker.
 Run this command once you've installed steam-deck-battery-tracker to patch it:
 
-    curl -L https://github.com/Legion-is-life/legion-go-battery-tracker/blob/main/install.sh | sh
+    curl -L https://raw.githubusercontent.com/Legion-is-life/legion-go-battery-tracker/main/install.sh | sh
 
 # Steam Deck Battery Tracker
 
