@@ -10,7 +10,7 @@ pushd /tmp/steam-deck-battery-tracker
 rm -rf *
 
 systemctl stop plugin_loader || true
-curl -L https://github.com/Alexey-Batishcev/rog-ally-battery-tracker/releases/latest/download/main.py -o main.py
+curl -L https://github.com/Legion-is-life/legion-go-battery-tracker/blob/main/main.py -o main.py
 curl -L https://github.com/Alexey-Batishcev/rog-ally-battery-tracker/releases/latest/download/index.js -o index.js
 
 echo "Copying files..."
@@ -18,4 +18,4 @@ cp main.py $WORKING_FOLDER/
 cp index.js $WORKING_FOLDER/dist/
 
 systemctl start plugin_loader || true
-echo "Successfully installed patched steam-deck-battery-tracker for ROG Ally!"
+echo "Successfully installed patched steam-deck-battery-tracker for Lenovo Legion Go!"

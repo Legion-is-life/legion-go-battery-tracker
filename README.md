@@ -1,14 +1,14 @@
-# Steam Deck Battery Tracker for Rog Ally
+# Steam Deck Battery Tracker for Lenovo Legion Go
 ## What does it do
-This is a sligtly modified version of [steam-deck-battery-tracker](https://github.com/safijari/steam-deck-battery-tracker) in order to work on the ROG Ally. Note that these instructions are all run inside the ROG Ally desktop mode.
+This is a slightly modified version of [rog-ally-battery-tracker](https://github.com/Alexey-Batishcev/rog-ally-battery-tracker) in order to work on the Lenovo Legion Go. Note that these instructions are all run inside the Lenovo Legion Go desktop mode.
 
 ## Install
-Note that all these commands are run inside the Ally.
+Note that all these commands are run inside the Legion.
 
 Please use Decky's built-in store to install official releases of steam-deck-battery-tracker.
 Run this command once you've installed steam-deck-battery-tracker to patch it:
 
-    curl -L https://github.com/Alexey-Batishcev/rog-ally-battery-tracker/releases/latest/download/install.sh | sh
+    curl -L https://github.com/Legion-is-life/legion-go-battery-tracker/blob/main/install.sh | sh
 
 # Steam Deck Battery Tracker
 

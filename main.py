@@ -170,9 +170,9 @@ class Plugin:
     async def recorder(self):
 
         bat_paths = {
-                    'power':'/sys/class/power_supply/BAT0/power_now',
-                    'capacity':'/sys/class/power_supply/BAT0/capacity',
-                    'status':'/sys/class/power_supply/BAT0/status'
+                    'power':'/sys/class/power_supply/BATT/power_now',
+                    'capacity':'/sys/class/power_supply/BATT/capacity',
+                    'status':'/sys/class/power_supply/BATT/status'
                     }
 
         bat_status = {
