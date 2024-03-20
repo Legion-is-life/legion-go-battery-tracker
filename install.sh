@@ -11,7 +11,7 @@ rm -rf *
 
 systemctl stop plugin_loader || true
 curl -L https://raw.githubusercontent.com/Legion-is-life/legion-go-battery-tracker/main/main.py -o main.py
-curl -L https://github.com/Alexey-Batishcev/rog-ally-battery-tracker/releases/latest/download/index.js -o index.js
+curl -L https://raw.githubusercontent.com/Legion-is-life/legion-go-battery-tracker/main/index.js -o index.js
 
 echo "Copying files..."
 cp main.py $WORKING_FOLDER/
